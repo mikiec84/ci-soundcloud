@@ -14,7 +14,7 @@ class MY_Controller extends Controller {
         $this->load->library('predis');
 
         try {
-            $this->predis->connect();
+            $this->predis->connect($this->config->item('redis'));
         } catch (Predis_CommunicationException $e) {
             show_error('Redis connection refused.');
         }
