@@ -73,12 +73,15 @@ class Sessions extends MY_Controller {
         }
 
         $access_token['expires'] = $access_token['expires_in'] + time();
+        $user_data = array_merge($this->data['all']['user'], $access_token);
 
-        $this->user->update($access_token);
+        $this->user->update($user_data);
 
         $this->data['header']['title'] = 'Refresh';
         $this->data['view']['minutes'] = round($access_token['expires_in'] / 60);
-        $this->data['view']['redirect_uri'] = $this->input->get('redirect_uri');
+        $this->data['view']['redirect_uri'] = (strlen($this->input->get('redirect_uri')))
+            ? $this->input->get('redirect_uri')
+            : $this->_redirect_uri();
 
         $this->view();
     }
