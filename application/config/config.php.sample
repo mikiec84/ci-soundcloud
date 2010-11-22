@@ -1,0 +1,52 @@
+<?php  if ( ! defined('BASEPATH')) exit('No direct script access allowed');
+
+if (ENV == 'production') {
+    $config['cache_path'] = '/tmp/';
+    $config['salt'] = 'your-unique-salt';
+    $config['client_id'] = 'your-client-id';
+    $config['client_secret'] = 'your-client-secret';
+    $config['redirect_uri'] = 'http://your-app.com/sessions/callback';
+    $config['redis']['host'] = '127.0.0.1';
+    $config['redis']['port'] = 6379;
+} elseif (ENV == 'development') {
+    // development config.
+}
+
+$defaults = array(
+    'base_url' => '',
+    'index_page' => '',
+    'uri_protocol' => 'PATH_INFO',
+    'url_suffix' => '',
+    'language' => 'english',
+    'charset' => 'UTF-8',
+    'enable_hooks' => false,
+    'subclass_prefix' => 'MY_',
+    'permitted_uri_chars' => 'a-z 0-9~%.:_\-',
+    'enable_query_strings' => true,
+    'controller_trigger' => 'c',
+    'function_trigger' => 'm',
+    'directory_trigger' => 'd',
+    'log_threshold' => 0,
+    'log_path' =>'',
+    'log_date_format' => 'Y-m-d H:i:s',
+    'cache_path' => '',
+    'encryption_key' => '',
+    'sess_cookie_name' => 'ci_session',
+    'sess_expiration' => 7200,
+    'sess_encrypt_cookie' => false,
+    'sess_use_database' => false,
+    'sess_table_name' => 'ci_sessions',
+    'sess_match_ip' => false,
+    'sess_match_useragent' => true,
+    'sess_time_to_update' => 300,
+    'cookie_prefix' => '',
+    'cookie_domain' => '',
+    'cookie_path' => '/',
+    'global_xss_filtering' => false,
+    'compress_output' => false,
+    'time_reference' => 'local',
+    'rewrite_short_tags' => false,
+    'proxy_ips' => ''
+);
+
+$config = array_merge($defaults, $config);
