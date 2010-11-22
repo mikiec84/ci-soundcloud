@@ -14,7 +14,7 @@ class Sessions extends MY_Controller {
         if ($code) {
             try {
                 $access_token = $this->soundcloud->accessToken($code);
-            } catch (Exception $e) {
+            } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
                 show_error($e->getMessage());
             }
 
