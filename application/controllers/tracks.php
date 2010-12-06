@@ -50,13 +50,13 @@ class Tracks extends MY_Controller {
                 'track[tags]' => (strlen($this->input->post('tags')))
                     ? $this->input->post('tags')
                     : null,
-                'track[asset_data]' => $track['full_path']
+                'track[asset_data]' => '@' . $track['full_path']
             );
 
             // perform the actual upload to soundcloud.
             try {
                 $response = json_decode(
-                    $this->soundcloud->uploadTrack($track_data, $mime_type),
+                    $this->soundcloud->post('tracks', $track_data),
                     true
                 );
             } catch (Services_Soundcloud_Invalid_Http_Response_Code_Exception $e) {
