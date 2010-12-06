@@ -98,10 +98,7 @@ class Tracks extends MY_Controller {
         if (array_key_exists('track', $_FILES)
             && array_key_exists('name', $_FILES['track'])
         ) {
-            $filename = $_FILES['track']['name'];
-            $filename = preg_split('/\./', $filename);
-
-            return $filename[count($filename) - 1];
+            return pathinfo($_FILES['track']['name'], PATHINFO_EXTENSION);
         } else {
             return false;
         }
