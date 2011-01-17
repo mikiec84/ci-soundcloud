@@ -184,18 +184,18 @@ class Soundcloud {
      * @return void
      */
     function __construct($options) {
-        if (empty($options['client_id'])) {
-            throw new Soundcloud_Missing_Consumer_Key_Exception();
-        }
+     if (empty($options['client_id'])) {
+         throw new Soundcloud_Missing_Consumer_Key_Exception();
+     }
 
-        $this->_clientId = $options['client_id'];
-        $this->_clientSecret = $options['client_secret'];
-        $this->_redirectUri = $options['redirect_uri'];
-        $this->_development = (array_key_exists('development', $options))
-            ? $options['development']
-            : false;
-        $this->_responseFormat = self::$_responseFormats['json'];
-        $this->version = Services_Soundcloud_Version::get();
+     $this->_clientId = $options['client_id'];
+     $this->_clientSecret = $options['client_secret'];
+     $this->_redirectUri = $options['redirect_uri'];
+     $this->_development = (array_key_exists('development', $options))
+         ? $options['development']
+         : false;
+     $this->_responseFormat = self::$_responseFormats['json'];
+     $this->version = Services_Soundcloud_Version::get();
     }
 
     /**
@@ -234,11 +234,12 @@ class Soundcloud {
      *
      * @param string $code OAuth code returned from the service provider
      * @param array $postData Optional post data
+     * @param array $curlOptions Optional cURL options
      *
      * @return mixed
      * @see Soundcloud::_getAccessToken()
      */
-    function accessToken($code, $postData = array()) {
+    function accessToken($code, $postData = array(), $curlOptions = array()) {
         $defaultPostData = array(
             'code' => $code,
             'client_id' => $this->_clientId,
@@ -248,7 +249,7 @@ class Soundcloud {
         );
         $postData = array_merge($defaultPostData, $postData);
 
-        return $this->_getAccessToken($postData);
+        return $this->_getAccessToken($postData, $curlOptions);
     }
 
     /**
@@ -256,11 +257,12 @@ class Soundcloud {
      *
      * @param string $refreshToken
      * @param array $postData Optional post data
+     * @param array $curlOptions Optional cURL options
      *
      * @return mixed
      * @see Soundcloud::_getAccessToken()
      */
-    function accessTokenRefresh($refreshToken, $postData = array()) {
+    function accessTokenRefresh($refreshToken, $postData = array(), $curlOptions = array()) {
         $defaultPostData = array(
             'refresh_token' => $refreshToken,
             'client_id' => $this->_clientId,
@@ -270,7 +272,7 @@ class Soundcloud {
         );
         $postData = array_merge($defaultPostData, $postData);
 
-        return $this->_getAccessToken($postData);
+        return $this->_getAccessToken($postData, $curlOptions);
     }
 
     /**
@@ -324,10 +326,10 @@ class Soundcloud {
      * @return mixed
      */
     function getHttpHeader($header) {
-        if (is_array($this->_lastHttpResponseHeaders)) {
-            return (array_key_exists($header, $this->_lastHttpResponseHeaders))
-                ? $this->_lastHttpResponseHeaders[$header]
-                : false;
+        if (is_array($this->_lastHttpResponseHeaders)
+            && array_key_exists($header, $this->_lastHttpResponseHeaders)
+        ) {
+            return $this->_lastHttpResponseHeaders[$header];
         } else {
             return false;
         }
@@ -551,15 +553,17 @@ class Soundcloud {
      * Retrieve access token.
      *
      * @param array $postData Post data
+     * @param array $curlOptions Optional cURL options
      *
      * @return mixed
      */
-    protected function _getAccessToken($postData) {
-        $response = $this->_request(
-            $this->getAccessTokenUrl(),
-            array(CURLOPT_POST => true, CURLOPT_POSTFIELDS => $postData)
+    protected function _getAccessToken($postData, $curlOptions = array()) {
+        $options = array(CURLOPT_POST => true, CURLOPT_POSTFIELDS => $postData);
+        $options += $curlOptions;
+        $response = json_decode(
+            $this->_request($this->getAccessTokenUrl(), $options),
+            true
         );
-        $response = json_decode($response, true);
 
         if (array_key_exists('access_token', $response)) {
             $this->_accessToken = $response['access_token'];
@@ -637,22 +641,18 @@ class Soundcloud {
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_USERAGENT => $this->_getUserAgent()
         );
-
-        // Can't use array_merge here since it messes up the array keys.
-        foreach ($defaultOptions as $key => $val) {
-            $options[$key] = $val;
-        }
+        $defaultOptions += $options;
 
         if (array_key_exists(CURLOPT_HTTPHEADER, $options)) {
-            $options[CURLOPT_HTTPHEADER] = array_merge(
+            $defaultOptions[CURLOPT_HTTPHEADER] = array_merge(
                 $this->_buildDefaultHeaders(),
                 $options[CURLOPT_HTTPHEADER]
             );
         } else {
-            $options[CURLOPT_HTTPHEADER] = $this->_buildDefaultHeaders();
+            $defaultOptions[CURLOPT_HTTPHEADER] = $this->_buildDefaultHeaders();
         }
 
-        curl_setopt_array($ch, $options);
+        curl_setopt_array($ch, $defaultOptions);
 
         $data = curl_exec($ch);
         $info = curl_getinfo($ch);
