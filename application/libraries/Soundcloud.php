@@ -15,6 +15,15 @@ require_once 'Soundcloud/Version.php';
 class Soundcloud {
 
     /**
+     * Custom cURL option.
+     *
+     * @access public
+     *
+     * @var integer
+     */
+    const CURLOPT_OAUTH_TOKEN = 173;
+
+    /**
      * Access token returned by the service provider after a successful authentication.
      *
      * @access private
@@ -152,6 +161,7 @@ class Soundcloud {
      * @var array
      */
     private static $_responseFormats = array(
+        '*' => '*/*',
         'json' => 'application/json',
         'xml' => 'application/xml'
     );
@@ -184,18 +194,18 @@ class Soundcloud {
      * @return void
      */
     function __construct($options) {
-     if (empty($options['client_id'])) {
-         throw new Soundcloud_Missing_Consumer_Key_Exception();
-     }
+        if (empty($options['client_id'])) {
+            throw new Soundcloud_Missing_Consumer_Key_Exception();
+        }
 
-     $this->_clientId = $options['client_id'];
-     $this->_clientSecret = $options['client_secret'];
-     $this->_redirectUri = $options['redirect_uri'];
-     $this->_development = (array_key_exists('development', $options))
-         ? $options['development']
-         : false;
-     $this->_responseFormat = self::$_responseFormats['json'];
-     $this->version = Services_Soundcloud_Version::get();
+        $this->_clientId = $options['client_id'];
+        $this->_clientSecret = $options['client_secret'];
+        $this->_redirectUri = $options['redirect_uri'];
+        $this->_development = (array_key_exists('development', $options))
+            ? $options['development']
+            : false;
+        $this->_responseFormat = self::$_responseFormats['json'];
+        $this->version = Services_Soundcloud_Version::get();
     }
 
     /**
@@ -206,13 +216,13 @@ class Soundcloud {
      * @return string
      * @see Soundcloud::_buildUrl()
      */
-    function getAuthorizeUrl($options = array()) {
-        $params = array(
+    function getAuthorizeUrl($params = array()) {
+        $defaultParams = array(
             'client_id' => $this->_clientId,
             'redirect_uri' => $this->_redirectUri,
             'response_type' => 'code'
         );
-        $params = array_merge($params, $options);
+        $params = array_merge($defaultParams, $params);
 
         return $this->_buildUrl(self::$_paths['authorize'], $params, false);
     }
@@ -415,15 +425,15 @@ class Soundcloud {
      *
      * @param string $path URI to request
      * @param array $params Optional query string parameters
-     * @param array $options Optional cURL options
+     * @param array $curlOptions Optional cURL options
      *
      * @return mixed
      * @see Soundcloud::_request()
      */
-    function get($path, $params = array(), $options = array()) {
+    function get($path, $params = array(), $curlOptions = array()) {
         $url = $this->_buildUrl($path, $params);
 
-        return $this->_request($url, $options);
+        return $this->_request($url, $curlOptions);
     }
 
     /**
@@ -431,23 +441,15 @@ class Soundcloud {
      *
      * @param string $path URI to request
      * @param array $postData Optional post data
-     * @param array $options Optional cURL options
+     * @param array $curlOptions Optional cURL options
      *
      * @return mixed
      * @see Soundcloud::_request()
      */
-    function post($path, $postData = array(), $options = array()) {
+    function post($path, $postData = array(), $curlOptions = array()) {
         $url = $this->_buildUrl($path);
-        $defaultOptions = array(
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => $postData
-        );
-
-        foreach ($defaultOptions as $key => $val) {
-            if (!array_key_exists($key, $options)) {
-                $options[$key] = $val;
-            }
-        }
+        $options = array(CURLOPT_POST => true, CURLOPT_POSTFIELDS => $postData);
+        $options += $curlOptions;
 
         return $this->_request($url, $options);
     }
@@ -457,26 +459,20 @@ class Soundcloud {
      *
      * @param string $path URI to request
      * @param array $postData Optional post data
-     * @param array $options Optional cURL options
+     * @param array $curlOptions Optional cURL options
      *
      * @return mixed
      * @see Soundcloud::_request()
      */
-    function put($path, $postData, $options = array()) {
+    function put($path, $postData, $curlOptions = array()) {
         $url = $this->_buildUrl($path);
-        $defaultOptions = array(
+        $options = array(
             CURLOPT_CUSTOMREQUEST => 'PUT',
             CURLOPT_POSTFIELDS => $postData
-        
         );
+        $options += $curlOptions;
 
-        foreach ($defaultOptions as $key => $val) {
-            if (!array_key_exists($key, $options)) {
-                $options[$key] = $val;
-            }
-        }
-
-        return $this->_request($url, $options);
+        return $this->_request($url, $curlOptions);
     }
 
     /**
@@ -484,37 +480,69 @@ class Soundcloud {
      *
      * @param string $path URI to request
      * @param array $params Optional query string parameters
-     * @param array $options Optional cURL options
+     * @param array $curlOptions Optional cURL options
      *
      * @return mixed
      * @see Soundcloud::_request()
      */
-    function delete($path, $params = array(), $options = array()) {
+    function delete($path, $params = array(), $curlOptions = array()) {
         $url = $this->_buildUrl($path, $params);
-        $defaultOptions = array(CURLOPT_CUSTOMREQUEST => 'DELETE');
-
-        foreach ($defaultOptions as $key => $val) {
-            if (!array_key_exists($key, $options)) {
-                $options[$key] = $val;
-            }
-        }
+        $options = array(CURLOPT_CUSTOMREQUEST => 'DELETE');
+        $options += $curlOptions;
 
         return $this->_request($url, $options);
     }
 
     /**
+     * Download track.
+     *
+     * @param integer $trackId
+     * @param array Optional query string parameters
+     * @param array $curlOptions Optional cURL options
+     *
+     * @return mixed
+     * @see Soundcloud::_request()
+     */
+    function download($trackId, $params = array(), $curlOptions = array()) {
+        $lastResponseFormat = array_pop(
+            preg_split('/\//', $this->getResponseFormat())
+        );
+        $defaultParams = array('oauth_token' => $this->getAccessToken());
+        $defaultCurlOptions = array(
+            CURLOPT_FOLLOWLOCATION => true,
+            self::CURLOPT_OAUTH_TOKEN => false
+        );
+        $url = $this->_buildUrl(
+            'tracks/' . $trackId . '/download',
+            array_merge($defaultParams, $params)
+        );
+        $options = $defaultCurlOptions + $curlOptions;
+
+        $this->setResponseFormat('*');
+
+        $response = $this->_request($url, $options);
+
+        // rollback to the previously defined response format.
+        $this->setResponseFormat($lastResponseFormat);
+
+        return $response;
+    }
+
+    /**
      * Construct default HTTP headers including response format and authorization.
+     *
+     * @param boolean Include access token or not
      *
      * @return array $headers
      */
-    protected function _buildDefaultHeaders() {
+    protected function _buildDefaultHeaders($includeAccessToken = true) {
         $headers = array();
 
         if ($this->_responseFormat) {
             array_push($headers, 'Accept: ' . $this->_responseFormat);
         }
 
-        if ($this->_accessToken) {
+        if ($includeAccessToken && $this->_accessToken) {
             array_push($headers, 'Authorization: OAuth ' . $this->_accessToken);
         }
 
@@ -628,31 +656,38 @@ class Soundcloud {
      * @access protected
      *
      * @param string $url
-     * @param array $options Optional curl options
+     * @param array $curlOptions Optional cURL options
      *
      * @throws Services_Soundcloud_Invalid_Http_Response_Code_Exception if the response code isn't valid
      * @return mixed
      */
-    protected function _request($url, $options = array()) {
+    protected function _request($url, $curlOptions = array()) {
         $ch = curl_init();
-        $defaultOptions = array(
+        $options = array(
             CURLOPT_URL => $url,
             CURLOPT_HEADER => true,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_USERAGENT => $this->_getUserAgent()
         );
-        $defaultOptions += $options;
+        $options += $curlOptions;
 
-        if (array_key_exists(CURLOPT_HTTPHEADER, $options)) {
-            $defaultOptions[CURLOPT_HTTPHEADER] = array_merge(
-                $this->_buildDefaultHeaders(),
-                $options[CURLOPT_HTTPHEADER]
-            );
+        if (array_key_exists(self::CURLOPT_OAUTH_TOKEN, $options)) {
+            $includeAccessToken = $options[self::CURLOPT_OAUTH_TOKEN];
+            unset($options[self::CURLOPT_OAUTH_TOKEN]);
         } else {
-            $defaultOptions[CURLOPT_HTTPHEADER] = $this->_buildDefaultHeaders();
+            $includeAccessToken = true;
         }
 
-        curl_setopt_array($ch, $defaultOptions);
+        if (array_key_exists(CURLOPT_HTTPHEADER, $options)) {
+            $options[CURLOPT_HTTPHEADER] = array_merge(
+                $this->_buildDefaultHeaders(),
+                $curlOptions[CURLOPT_HTTPHEADER]
+            );
+        } else {
+            $options[CURLOPT_HTTPHEADER] = $this->_buildDefaultHeaders($includeAccessToken);
+        }
+
+        curl_setopt_array($ch, $options);
 
         $data = curl_exec($ch);
         $info = curl_getinfo($ch);
