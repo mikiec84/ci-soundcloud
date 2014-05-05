@@ -10,8 +10,8 @@ The application can be viewed over at [soundcloud.qvister.se](http://soundcloud.
 
 In order to the get application up and running you'll need to match the criteria below.
 
-1. You're running PHP5 or higher.
-3. You got Redis installed (see instructions for Mac OS X and Ubuntu [here](http://seanbehan.com/databases/installing-redis-server-and-client-on-mac-os-x-and-ubuntu/)).
+1. You're running PHP5 or higher
+3. You got [Redis](http://redis.io/) installed
 
 Great! Lets get started.
 
