@@ -1,10 +1,10 @@
 # SoundCloud PHP API Wrapper Demo Application
 
+![Screenshot](screenshot.png)
+
 ## Introduction
 
 This is an demo application based on the [SoundCloud PHP API wrapper](https://github.com/mptre/php-soundcloud). It's written using the [CodeIgniter](http://codeigniter.com) framework.
-
-The application can be viewed over at [soundcloud.qvister.se](http://soundcloud.qvister.se).
 
 ## Getting started
 
